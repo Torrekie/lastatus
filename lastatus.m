@@ -32,18 +32,22 @@ int main(int argc, char *argv[]) {
 		int uid = atoi(argv[1]);
 		LOG_DEBUG("Using id %d", uid);
 
-    /* Why we use objc just because of this? */
+		/* Why we use objc just because of this? */
 		NSMutableDictionary *options = [NSMutableDictionary new];
 		if (!options) {
 			LOG_DEBUG("Options error", NULL);
 			return EXIT_FAILURE;
 		}
 		options[@"ExtendedDeviceLockState"] = @YES;
-#if TARGET_OS_OSX
-		/* macOS requires a DeviceHandle for the user context. On embedded platforms this
-		 * option is generally invalid, so we only set it for macOS builds. */
-		options[@"DeviceHandle"] = uid ? @(uid) : @(4); /* 4: _uucp */
+#if !TARGET_OS_OSX
+		if (uid != 501) /* 501: mobile */
 #endif
+		{
+			/* macOS requires a DeviceHandle for the user context. On embedded platforms this
+			 * option is generally invalid, so we only set it for macOS builds if asking for
+			 * regular users' handle */
+			options[@"DeviceHandle"] = uid ? @(uid) : @(4); /* 4: _uucp */
+		}
 
 		int lock_state = MKBGetDeviceLockState((__bridge CFDictionaryRef)options);
 		if (lock_state != kMobileKeyBagDeviceIsUnlocked) {
